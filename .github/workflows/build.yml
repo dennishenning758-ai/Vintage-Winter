@@ -1,32 +1,37 @@
 name: Build Windows VST3
 
-on: [push, workflow_dispatch]
+on:
+  push:
+  workflow_dispatch:
 
-jobs:
-  build:
+build:
     runs-on: windows-latest
 
     steps:
       - name: Checkout Code
-- name: Setup Faust
+        uses: actions/checkout@v4
+
+      - name: Setup Faust
+        shell: pwsh
         run: |
           Invoke-WebRequest -Uri "https://github.com/grame-cncm/faust/releases/download/2.74.0/Faust-2.74.0-win64.exe" -OutFile "faust-installer.exe"
           Start-Process -FilePath ".\faust-installer.exe" -ArgumentList "/S" -Wait
           echo "C:\Program Files\Faust\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Compile Faust to C++
+        shell: cmd
         run: |
-          faust -a vst.cpp VintageWinter.dsp -o VintageWinter.cpp
+          "C:\Program Files\Faust\bin\faust.exe" -a vst.cpp VintageWinter.dsp -o VintageWinter.cpp
 
-      - name: Setup MSVC & Build VST
+      - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
 
       - name: Compile DLL
+        shell: cmd
         run: |
           cl /O2 /LD /EHsc /I"C:\Program Files\Faust\include" VintageWinter.cpp /Fe"Vintage Winter.dll"
 
       - name: Upload Windows VST
-        uses: actions/upload-artifact@v4
-        with:
+with:
           name: Vintage-Winter-Windows-Plugin
-          path: "Vintage Winter.dll"
+          path: Vintage Winter.dll
